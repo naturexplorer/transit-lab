@@ -1,0 +1,237 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+
+% Placeholder box for figures still to be drawn as vector graphics.
+\newcommand{\placeholderfig}[2]{%
+  \begin{figure}[h]
+    \centering
+    \fbox{\parbox[c][4cm][c]{0.8\textwidth}{\centering\textit{Figure to be drawn}}}
+    \caption{#1}
+    \label{#2}
+  \end{figure}}
+
+\title{\texttt{transit-lab}: Technical Report}
+\author{Roman}
+\date{}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+\label{sec:introduction}
+
+\section{Background}
+\label{sec:background}
+
+\section{Methods}
+\label{sec:methods}
+
+\section{Results}
+\label{sec:results}
+
+\section{Failure analysis}
+\label{sec:failure-analysis}
+
+\section{Limitations}
+\label{sec:limitations}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+\appendix
+
+\section{Derivations}
+\label{sec:app-derivations}
+
+% ---------------------------------------------------------------------------
+\subsection{Conventions}
+\label{sec:app-conventions}
+
+\placeholderfig{Side view of the star, sliced through its centre, with the
+observer to the left. A point on the stellar surface is at angle $\theta$
+between its surface normal and the line of sight; its projected distance from
+the centre is $r$, and $\mu$ is the corresponding depth coordinate.}{fig:conventions}
+
+With the stellar radius normalised to $1$,
+\begin{equation}
+  r = \sin\theta, \qquad \mu = \cos\theta .
+\end{equation}
+\begin{itemize}
+  \item $\mu$ is for the physics of limb darkening: it determines at what
+        depth the photons we receive are coming out.
+  \item $r$ is needed for the geometry: it is how far from the stellar centre
+        the light is coming from.
+\end{itemize}
+
+Let $d$ be the distance between the centres of the star and the planet, $r_*$
+the stellar radius and $r_p$ the planetary radius. Define
+\begin{equation}
+  z = \frac{d}{r_*}, \qquad p = \frac{r_p}{r_*}.
+\end{equation}
+
+Flux is energy per unit time per unit detector area. The most flux the observer
+receives is out of transit; when a transit occurs, the flux drops. For light
+curves we record the normalised flux $F$, the received flux divided by the
+out-of-transit flux.
+
+% ---------------------------------------------------------------------------
+\subsection{Occulted area of two overlapping discs}
+\label{sec:app-geometry}
+
+\paragraph{Uniform source.}
+This assumes the whole area of the star emits light equally, so
+\begin{equation}
+  F = 1 - \frac{\text{area of overlap}}{\pi r_*^2}.
+\end{equation}
+Everything in the model is normalised, so only the relative size of the two
+bodies ($p$) and their relative separation ($z$) matter. We can therefore write
+\begin{equation}
+  F^{e}(p,z) = 1 - \lambda^{e}(p,z),
+\end{equation}
+where $e$ stands for eclipse and $\lambda^{e}$ is the overlap function.
+
+\paragraph{Case 1: no overlap.}
+There is no overlap if
+\begin{equation}
+  d > r_p + r_* \iff z r_* > p r_* + r_* \iff 1 + p < z .
+\end{equation}
+So $\lambda^{e}(p,z) = 0$ and $F^{e}(p,z) = 1$ here.
+
+\paragraph{Case 2: planet fully inside the star.}
+This happens when
+\begin{equation}
+  d \le r_* - r_p \iff z r_* \le r_* - p r_* \iff z \le 1 - p,
+  \qquad \text{with } p < 1 .
+\end{equation}
+Then
+\begin{equation}
+  \frac{\text{area of overlap}}{\pi r_*^2} = \frac{\pi r_p^2}{\pi r_*^2} = p^2,
+\end{equation}
+so $\lambda^{e}(p,z) = p^2$ and $F^{e}(p,z) = 1 - p^2$.
+
+\paragraph{Case 3: star fully inside the planet.}
+This happens when
+\begin{equation}
+  d \le r_p - r_* \iff z \le p - 1, \qquad \text{with } p \ge 1 .
+\end{equation}
+Then
+\begin{equation}
+  \frac{\text{area of overlap}}{\pi r_*^2} = \frac{\pi r_*^2}{\pi r_*^2} = 1,
+\end{equation}
+so $\lambda^{e}(p,z) = 1$ and $F^{e}(p,z) = 0$.
+
+\paragraph{Case 4: partial overlap.}
+This is the most thorough case, and whether $p > 1$ or $p \le 1$ does not
+matter. It is the only remaining case, so
+\begin{equation}
+  \underbrace{z > 1 - p > 0}_{p < 1}
+  \quad\text{and}\quad
+  \underbrace{z > p - 1 \ge 0}_{p \ge 1}
+  \quad\text{and}\quad
+  z \le 1 + p .
+\end{equation}
+The first two conditions combine into $z > |1 - p|$, hence
+\begin{equation}
+  |1 - p| < z \le 1 + p .
+\end{equation}
+
+\placeholderfig{Partial overlap. The star (centre $O_1$, radius $r_*$) and the
+planet (centre $O_2$, radius $p r_*$) have centres a distance $z r_*$ apart.
+$B$ is an intersection point of the two circles; $A$ is where the planet's
+boundary meets the axis $O_1O_2$ inside the star; $C$ is where the star's
+boundary meets the axis inside the planet; $D$ is the foot of the perpendicular
+from $B$. The upper half of the overlap is split into the planet segment $S_1$
+on chord $AB$, the triangle $S_2 = ABC$, and the star segment $S_3$ on chord
+$BC$.}{fig:overlap}
+
+Let $\alpha = \angle BO_1O_2$ and $\beta = \angle BO_2O_1$. By the cosine rule
+in triangle $O_1BO_2$:
+\begin{align}
+  (p r_*)^2 &= r_*^2 + z^2 r_*^2 - 2 z r_*^2 \cos\alpha
+  &&\implies& \cos\alpha &= \frac{z^2 - p^2 + 1}{2z}, \\
+  r_*^2 &= p^2 r_*^2 + z^2 r_*^2 - 2 p z r_*^2 \cos\beta
+  &&\implies& \cos\beta &= \frac{z^2 + p^2 - 1}{2pz},
+\end{align}
+so
+\begin{equation}
+  \alpha = \cos^{-1}\!\left(\frac{z^2 - p^2 + 1}{2z}\right), \qquad
+  \beta  = \cos^{-1}\!\left(\frac{z^2 + p^2 - 1}{2pz}\right).
+\end{equation}
+
+The height of $B$ above the axis is $BD = r_* \sin\alpha$, and
+\begin{equation}
+  AC = z r_* - (z r_* - p r_*) - (z r_* - r_*) = r_* (1 + p - z).
+\end{equation}
+The three areas are
+\begin{align}
+  S_2 &= \tfrac{1}{2}\, BD \cdot AC = \tfrac{1}{2}\, r_*^2 \sin\alpha\,(1 + p - z), \\
+  S_1 &= \pi p^2 r_*^2 \frac{\beta}{2\pi} - \tfrac{1}{2} p^2 r_*^2 \sin\beta
+       = \tfrac{1}{2} p^2 r_*^2 (\beta - \sin\beta), \\
+  S_3 &= \tfrac{1}{2} r_*^2 (\alpha - \sin\alpha).
+\end{align}
+
+By symmetry about the axis, the overlap area is $2(S_1 + S_2 + S_3)$. Hence
+\begin{equation}
+  \lambda^{e}(p,z) = \frac{2(S_1 + S_2 + S_3)}{\pi r_*^2}
+  = \frac{2}{\pi}\left[\tfrac{1}{2} p^2 (\beta - \sin\beta)
+    + \tfrac{1}{2}(\alpha - \sin\alpha)
+    + \tfrac{1}{2}\sin\alpha\,(p - z + 1)\right].
+\end{equation}
+Using
+\begin{equation}
+  \sin\alpha = \sqrt{1 - \cos^2\alpha}, \qquad
+  \sin\beta = \frac{\sin\alpha}{p}
+\end{equation}
+(the latter from the sine rule in triangle $O_1BO_2$), this becomes
+\begin{align}
+  \lambda^{e}(p,z)
+  &= \frac{2}{\pi}\left[\tfrac{1}{2} p^2 \beta + \tfrac{1}{2}\alpha
+     - \tfrac{1}{2} p \sin\alpha + \tfrac{1}{2}\sin\alpha\,(p - z)\right] \\
+  &= \frac{2}{\pi}\left[\tfrac{1}{2} p^2 \beta + \tfrac{1}{2}\alpha
+     - \tfrac{1}{2} z \sin\alpha\right] \\
+  &= \frac{2}{\pi}\left[\tfrac{1}{2} p^2 \beta + \tfrac{1}{2}\alpha
+     - \tfrac{1}{2}\sqrt{\frac{4z^2 - (z^2 - p^2 + 1)^2}{4}}\,\right] \\
+  &= \frac{1}{\pi}\left[p^2 \beta + \alpha
+     - \sqrt{\frac{4z^2 - (z^2 - p^2 + 1)^2}{4}}\,\right].
+\end{align}
+
+\paragraph{Result.}
+Hence we get
+\begin{equation}
+  \lambda^{e}(p,z) =
+  \begin{cases}
+    0, & 1 + p < z, \\[4pt]
+    \dfrac{1}{\pi}\left[p^2 \beta + \alpha
+      - \sqrt{\dfrac{4z^2 - (1 + z^2 - p^2)^2}{4}}\,\right],
+      & |1 - p| < z \le 1 + p, \\[12pt]
+    p^2, & z \le 1 - p, \\[4pt]
+    1, & z \le p - 1,
+  \end{cases}
+\end{equation}
+with $\alpha$ and $\beta$ as above.
+
+\placeholderfig{The same decomposition into $S_1$, $S_2$ and $S_3$ in a
+configuration where the planet's centre $O_2$ lies inside the star and
+$\beta$ is obtuse.}{fig:overlap-obtuse}
+
+% ---------------------------------------------------------------------------
+\subsection{Orbital separation and transit duration}
+\label{sec:app-orbit}
+
+\subsection{The box-least-squares statistic}
+\label{sec:app-bls}
+
+\subsection{Period-grid spacing}
+\label{sec:app-grid}
+
+\subsection{Transit signal-to-noise}
+\label{sec:app-snr}
+
+\end{document}
