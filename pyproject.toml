@@ -11,8 +11,7 @@ dependencies = ["numpy>=1.26"]
 
 [project.optional-dependencies]
 # Tools needed only to develop and test the package.
-# Pin batman exactly: replace >=2.4 with ==<version from `pip show batman-package`>.
-dev = ["pytest>=8.0", "batman-package>=2.4"]
+dev = ["pytest>=8.0", "batman-package==2.5.2"]
 
 [tool.setuptools]
 packages = ["transit_lab"]
