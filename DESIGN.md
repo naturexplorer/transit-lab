@@ -48,3 +48,13 @@ I will run them against the true models to validate them. For vetting, the CNN a
 signal-to-noise, given the true period and mid-transit time. This is the more scientifically informative
 number but is generous to the classifier, since in deployment the period arrives from an
 imperfect detector like BLS. It will be reported as an upper bound.
+
+## Stage 1
+
+I set up the project configuration so "import transit_lab" is possible for testing and other purposes.
+Additionally, CI is set up, and tests will be added as I progress, before the stage I am embarking on.
+
+## Stage 3
+
+This stage came before Stage 2 as I decided to do the astronomical geometry first and implement the model. That is fine as Stage 2 is simply data cleaning and preparation.
+I am only implementing uniform source and quadratic limb darkening cases as they are mathematically accessible for me, and they give the most understanding and practical usability for future injections.
