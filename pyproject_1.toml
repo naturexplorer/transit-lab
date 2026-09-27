@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transit-lab"
+version = "0.1.0"
+description = "Detection completeness of learned vs. classical transit search"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+# Tools needed only to develop and test the package.
+# Pin batman exactly: replace >=2.4 with ==<version from `pip show batman-package`>.
+dev = ["pytest>=8.0", "batman-package>=2.4"]
+
+[tool.setuptools]
+packages = ["transit_lab"]
