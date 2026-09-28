@@ -58,3 +58,7 @@ Additionally, CI is set up, and tests will be added as I progress, before the st
 
 This stage came before Stage 2 as I decided to do the astronomical geometry first and implement the model. That is fine as Stage 2 is simply data cleaning and preparation.
 I am only implementing uniform source and quadratic limb darkening cases as they are mathematically accessible for me, and they give the most understanding and practical usability for future injections.
+
+Tests at the contact points of star and planet caught a rounding error which produces math.acos argument slightly outside [-1, 1]. I fix it with clamping. Tests pass.
+
+## Stage 2
