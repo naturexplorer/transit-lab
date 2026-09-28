@@ -6,9 +6,10 @@ def flux_uniform(p, z):
     if z >= 1 + p: return 1.0        # no overlap
     if z <= 1 - p: return 1 - p**2      # planet fully inside the star
     if z <= p - 1: return 0.0         # star fully covered
-    alpha = math.acos((1 - p**2 + z**2) / (2*z))
-    beta = math.acos((p**2 + z**2 - 1) / (2*p*z))
-    sqrt = math.sqrt(4*z**2 - (1 + z**2 - p**2)**2)
+    clamp = lambda x: max(-1.0, min(1.0, x))
+    alpha = math.acos(clamp((1 - p**2 + z**2) / (2*z)))
+    beta = math.acos(clamp((p**2 + z**2 - 1) / (2*p*z)))
+    sqrt = math.sqrt(max(0.0, 4*z**2 - (1 + z**2 - p**2)**2))
     return 1 - (p**2 * beta + alpha - 0.5 * sqrt) / math.pi
 
 
@@ -16,7 +17,7 @@ def kappa(r, p, z):
     # helper for quadratic limb darkening
     if r <= p - z: return math.pi
     if abs(z - p) < r < z + p:
-        return math.acos((r**2 + z**2 - p**2) / (2*r*z))
+        return math.acos(max(-1.0, min(1.0, (r**2 + z**2 - p**2) / (2*r*z))))
     return 0
 
 def flux_quadratic(p, z, u1: float, u2: float, N=4000):
