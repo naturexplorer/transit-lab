@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "transit-lab"
 version = "0.1.0"
 description = "Detection completeness of learned vs. classical transit search"
-requires-python = ">=3.10"
+requires-python = ">=3.14"
 dependencies = ["numpy==2.4.2"]
 
 [project.optional-dependencies]
