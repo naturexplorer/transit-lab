@@ -6,7 +6,7 @@ import batman
 import numpy as np
 import pytest
 
-from transit_lab.model import flux_quadratic, flux_uniform, kappa, separation
+from transit_lab.transit_model import flux_quadratic, flux_uniform, kappa, separation
 
 
 def batman_flux(t, p, a_over_rstar, inc_deg, g1=None, g2=None, period=3.0, t0=0.0):
