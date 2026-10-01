@@ -61,4 +61,10 @@ I am only implementing uniform source and quadratic limb darkening cases as they
 
 Tests at the contact points of star and planet caught a rounding error which produces math.acos argument slightly outside [-1, 1]. I fix it with clamping. Tests pass.
 
-## Stage 2
+## Stage 7
+
+I do it before Stage 2 because RF and CNN will trained on provided data (pre-computed views), and conditioning of the raw data will be used for later stages, when injection happens.
+
+AstroNet provides pre-computed views in TFRecords, which I have to unpack. I convert them into .npz for easy use.
+
+Writing the conversion script revealed that there are quite a lot of shared stars across training, validation, and test data. AstroNet's released split is random by TCE, not by star: 851 of 1499 test stars also appear in train (57%). Since TCEs on the same star share noise and tend to share labels (stars with one planet often host more), this likely inflates test metrics. I want to keep the released split for comparability with Shallue & Vanderburg (2018), and quantify the leak instead. convert_tfrecords.py flags a star-disjoint test subset ([N] TCEs, [P] planets, [S] stars) containing only stars absent from train and val. Every metric will be reported on both the full and star-disjoint test sets.

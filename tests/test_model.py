@@ -1,4 +1,4 @@
-"""Validation tests for the transit model (stage 2)."""
+"""Validation tests for the transit model (stage 3)."""
 
 import math
 from typing import Any

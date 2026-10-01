@@ -1,6 +1,6 @@
 # transit-lab
 
-**Does adding an learned vetting stage recover more planets than classical period search alone?**
+**Does adding a learned vetting stage recover more planets than classical period search alone?**
 
 This hands-on project is a natural follow-up of my theoretical EPQ answering the question
 *"To what extent does AI assist in exoplanet detection using transit photometry?"*
@@ -17,9 +17,9 @@ finds them. The result is a *completeness curve*: recovery fraction against
 signal-to-noise, with every pipeline calibrated to the same false-alarm rate so the
 comparison is fair.
 
-This practical investigation will involve:
+This practical investigation will involve the following stages:
 1. writing tests and CI, pinning dependencies, and writing a design document to update later
-2. conditioning the data: dropping bad cadences, NaN removal, per-quarter normalisation, and stitching the quarters together (detrending comes after injection, see 10)
+2. conditioning the data: dropping bad cadences, NaN removal, per-quarter normalisation, and stitching the quarters together (detrending comes after injection, see 9)
 3. implementing the transit model to inject simulated transit curves onto real Kepler light curves. Test: Validated against `batman`
 4. implementing the BLS algorithm for transit detection. Test: Validated against `astropy`
 5. borrowing the Transit Least Squares (TLS) algorithm as another data point for comparison

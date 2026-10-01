@@ -5,6 +5,8 @@ venv/
 CLAUDE.md
 SPEC.md
 resources/
+astronet_data/*
+!astronet_data/*.npz
 *.egg-info/
 .pytest_cache/
 .ruff_cache/

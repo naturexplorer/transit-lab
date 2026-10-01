@@ -12,7 +12,7 @@ dependencies = ["numpy==2.4.2"]
 [project.optional-dependencies]
 # Tools needed only to develop and test the package.
 # batman imports distutils (removed in Python 3.12); setuptools provides a replacement
-dev = ["pytest>=8.0", "batman-package==2.5.2", "setuptools"]
+dev = ["pytest>=8.0", "batman-package==2.5.2", "tfrecord", "setuptools"]
 
 [tool.setuptools]
 packages = ["transit_lab"]
