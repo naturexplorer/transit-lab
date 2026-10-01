@@ -63,15 +63,15 @@ Tests at the contact points of star and planet caught a rounding error which pro
 
 ## Stage 7a: preparing data for vetting
 
-I chose to do Stage 7 before Stage 2 because RF and CNN will trained on provided data (pre-computed views), and conditioning of the raw data will be used for later stages, when injection happens. So order is fine.
+I chose to do Stage 7 before Stage 2 because RF and CNN will be trained on provided data (pre-computed views), and conditioning of the raw data will be used for later stages, when injection happens. So order is fine.
 
-AstroNet provides pre-computed views in TFRecords, which I have to unpack. I convert them into .npz for easy use.
+AstroNet provides pre-computed views in TFRecords, which I have to parse. I convert them into .npz for easy use.
 
 Writing the conversion script revealed that there are quite a lot of shared stars across training, validation, and test data. AstroNet's released split is random by TCE, not by star: 851 of 1499 test stars also appear in train (57%). Since TCEs on the same star share noise and tend to share labels (stars with one planet often host more), this likely inflates test metrics. I want to keep the released split for comparability with Shallue & Vanderburg (2018), and quantify the leak instead. convert_tfrecords.py flags a star-disjoint test subset (612 TCEs, 212 planets, 573 stars) containing only stars absent from train and val. Every metric will be reported on both the full and star-disjoint test sets.
 
 ## Stage 7b: training the RF using scikit-learn
 
-*Configuration of RF*. sklearn.ensemble.RandomForestClassifier: 500 trees, all other hyperparameters at defaults (√2202 ≈ 47 bins considered per split, unlimited depth). Input: global and local views concatenated into a 2202-dim vector, the same inputs as the CNN, so the comparison isolates the model class. Untuned by design: no decision has yet been made using val. Trains in about 12 s on Macbook Pro M5.
+*Configuration of RF*. sklearn.ensemble.RandomForestClassifier ([1.9.1]): 500 trees, all other hyperparameters at defaults (√2202 ≈ 47 bins considered per split, unlimited depth). Input: global and local views concatenated into a 2202-dim vector, the same inputs as the CNN, so the comparison isolates the model class. Untuned by design: no decision has yet been made using val. Trains in about 12 s on Macbook Pro M5.
 
 Validation results (AstroNet val split, 1574 TCEs, 355 planets; 5 seeds, mean ± sample std):
 
@@ -80,7 +80,7 @@ Validation results (AstroNet val split, 1574 TCEs, 355 planets; 5 seeds, mean ±
 | ROC AUC | 0.9706 ± 0.0005 | 0.5 |
 | PR-AUC | 0.9062 ± 0.0006 | 0.226 |
 
-*Uncertainty*. Using the standard Hanley–McNeil formula for standard error (SE) of an AUC with positive and negative counts 355 and 1219 respectively, the SE is about 0.006. This is >10 times the Seed variation (±0.0005). Therefore, it suggests that the sampling error carries much more uncertainty for the model than the seed variations. 
+*Uncertainty*. Using the standard Hanley–McNeil formula for standard error (SE) of an AUC with positive and negative counts 355 and 1219 respectively, the SE is about 0.006. This is >10 times the Seed variation (±0.0005). Therefore, it suggests that the sampling error carries much more uncertainty in the estimate than the seed variations. 
 
 *Interpretation*. This untuned RF on raw bins already exceeds the 0.95 AUC gate set for the CNN, so a significant share of the benchmark is separable without learned convolutional features. The published single-model CNN (AUC ≈ 0.989) makes around a third as many ranking errors (1 − AUC of 0.011 against 0.029).
 
