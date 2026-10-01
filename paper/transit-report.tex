@@ -6,6 +6,7 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{float}
 \usepackage{tikz}
+\usepackage{booktabs}
 \usetikzlibrary{calc,decorations.pathreplacing}
 
 % Partial-overlap figure, computed from the parameters.
@@ -80,6 +81,97 @@
 
 \section{Methods}
 \label{sec:methods}
+\subsection{Vetting classifiers}
+\label{sec:methods-vetting}
+
+\paragraph{Data.}
+The vetting classifiers are trained on the pre-computed views released with
+AstroNet~\cite{shallue2018,astronet}. Each threshold-crossing event (TCE) is represented by
+two phase-folded, binned views of its light curve centred on the transit: a global
+view $\mathbf{g} \in \mathbb{R}^{2001}$ spanning the full orbital period, and a local
+view $\boldsymbol{\ell} \in \mathbb{R}^{201}$ spanning a few transit durations.
+Labels come from the Kepler DR24 Autovetter training set~\cite{mccauliff2015}:
+planet candidates (PC) are mapped to $y = 1$, and astrophysical false positives (AFP)
+and non-transiting phenomena (NTP) to $y = 0$. The released TFRecord files are
+converted once to NumPy arrays; the conversion rejects any record with an unexpected
+label or view length, and any duplicated (star, TCE number) pair, rather than dropping them.
+
+\paragraph{Splits and star overlap.}
+I keep AstroNet's released train/validation/test split, for direct comparability with
+\cite{shallue2018}. That split is random by TCE rather than by host star, so a star
+with several TCEs can contribute to more than one split
+(Table~\ref{tab:splits}). TCEs on the same star share its noise properties, and their
+labels are correlated (a star hosting one planet often hosts more), so this overlap
+is a potential source of leakage that would inflate test metrics. Instead of
+re-splitting, which would sacrifice comparability, I quantify the effect. Let $\mathcal{D}_{\text{train}}$, $\mathcal{D}_{\text{val}}$ and $\mathcal{D}_{\text{test}}$
+denote the sets of TCEs in each split, let $\operatorname{star}(i)$ be the host star of
+TCE~$i$, and let $\operatorname{stars}(\mathcal{D}) = \{\operatorname{star}(i) : i \in \mathcal{D}\}$.
+Every test metric is reported both on the full test set and on the \emph{unseen-star} subset
+\[
+  \mathcal{D}_{\text{test}}^{\text{u}} = \{\, i \in \mathcal{D}_{\text{test}} :
+  \operatorname{star}(i) \notin \operatorname{stars}(\mathcal{D}_{\text{train}} \cup \mathcal{D}_{\text{val}}) \,\},
+\]
+which contains only TCEs whose host star was never seen during training or model
+selection. $\mathcal{D}_{\text{test}}^{\text{u}}$ is smaller than $\mathcal{D}_{\text{test}}$, so its
+metrics carry larger sampling error, and it is not a random sample: excluding seen stars
+removes a disproportionate share of multi-TCE systems, so its composition may differ.
+A gap between the two sets therefore bounds, rather than measures, the effect of leakage.
+
+\begin{table}[h]
+  \centering
+  \label{tab:splits}
+  \begin{tabular}{lrrr}
+    \toprule
+    Split & TCEs & Planets & Stars \\
+    \midrule
+    Train                        & 12589  & 2885  & 8648 \\
+    Validation                   & 1574 & 355  & 1493 \\
+    Test                         & 1574  & 360  & 1499 \\
+    Test, unseen-star subset     & 612  & 212  & 573  \\
+    \midrule
+    \multicolumn{4}{l}{Shared stars: train \& val 849; train \& test 851;
+                       val \& test 151} \\
+    \bottomrule
+  \end{tabular}
+  \caption{AstroNet's released split. Overlap counts are host stars appearing in both splits.}
+\end{table}
+
+\paragraph{Random forest.}
+The random forest~\cite{breiman2001} receives the two views concatenated,
+$\mathbf{x} = [\mathbf{g};\, \boldsymbol{\ell}] \in \mathbb{R}^{2202}$, which are the
+same inputs as the CNN, so that any performance difference is attributable to the
+model class rather than to feature engineering. I use scikit-learn's
+implementation~\cite{pedregosa2011} with 500 trees and all other hyperparameters at
+their defaults: each tree is grown to full depth on a bootstrap resample of the
+training set, and each split considers a random subset of
+$\lfloor \sqrt{2202} \rfloor = 46$ input bins, chosen by Gini impurity. After training, each tree is a fixed sequence of threshold tests that routes
+$\mathbf{x}$ to a single leaf. Each leaf holds a value set during training: the
+fraction of planets among the training TCEs that reached it, which is $0$ or $1$
+because the trees are grown until every leaf is pure. The planet score
+$s(\mathbf{x}) \in [0, 1]$ is the mean of the 500 leaf values reached by
+$\mathbf{x}$, i.e.\ the fraction of trees that vote ``planet''.
+
+\paragraph{Evaluation.}
+Both classifiers are evaluated by two threshold-free ranking metrics. The ROC AUC is
+the probability that a randomly chosen planet outscores a randomly chosen
+non-planet,
+\[
+  \text{AUC} = \Pr\!\big[\, s(\mathbf{x}^{+}) > s(\mathbf{x}^{-}) \,\big],
+\]
+which equals $0.5$ for a random ranking regardless of class balance. The PR-AUC is
+estimated by average precision,
+$\text{AP} = \sum_k (R_k - R_{k-1})\, P_k$, where $P_k$ and $R_k$ are the precision
+and recall at the $k$-th highest score; for a random ranking it equals the planet
+prevalence $\pi$, so it is always reported alongside $\pi$. All development decisions
+use the validation set; the test set is evaluated once, on frozen models.
+
+Two sources of uncertainty are distinguished. Seed variability (the randomness of
+training) is measured as the sample standard deviation over five seeds. Sampling
+variability (which finite set of TCEs is being evaluated on) is estimated by
+bootstrap resampling of the evaluation set~\cite{efron1979}, and the difference
+between two classifiers is assessed with a \emph{paired} bootstrap, in which both
+models are scored on the same resampled TCEs, so that cases hard for both cancel in
+the difference.
 
 \section{Results}
 \label{sec:results}
@@ -101,6 +193,8 @@
 % ---------------------------------------------------------------------------
 \subsection{Conventions}
 \label{sec:app-conventions}
+
+I followed the conventions and results introduced my Mandel \& Agol ~\cite{mandel2002}.
 
 \begin{figure}[H]
   \centering
@@ -438,7 +532,7 @@ and an endpoint of the covered arc,
   \end{cases}
 \end{equation}
 
-Hence we get our final relative flux formula:
+Hence we get our final relative flux formula (which ~\cite{mandel2002} implemented analytically by cases via elliptic integrals):
 \begin{equation}
   F(p,z) = 1 - \frac{\displaystyle\int_0^1 I(r)\, 2 r \kappa(r) \,\mathrm{d}r}
                     {\displaystyle\int_0^1 I(r)\, 2\pi r \,\mathrm{d}r}.
@@ -574,5 +668,43 @@ period. As we do not want to record a dip in flux when the planet is
 
 \subsection{Transit signal-to-noise}
 \label{sec:app-snr}
+
+\begin{thebibliography}{9}
+
+\bibitem{mandel2002}
+K.~Mandel and E.~Agol,
+``Analytic Light Curves for Planetary Transit Searches,''
+\emph{The Astrophysical Journal Letters}, vol.~580, pp.~L171--L175, 2002.
+
+\bibitem{shallue2018}
+C.~J. Shallue and A.~Vanderburg,
+``Identifying Exoplanets with Deep Learning: A Five-planet Resonant Chain around
+Kepler-80 and an Eighth Planet around Kepler-90,''
+\emph{The Astronomical Journal}, vol.~155, p.~94, 2018.
+
+\bibitem{astronet}
+C.~J. Shallue, \emph{AstroNet} (exoplanet-ml repository), Google Research,
+\url{https://github.com/google-research/exoplanet-ml/tree/master/exoplanet-ml/astronet},
+accessed October 2026.
+
+\bibitem{mccauliff2015}
+S.~D. McCauliff et al.,
+``Automatic Classification of Kepler Planetary Transit Candidates,''
+\emph{The Astrophysical Journal}, vol.~806, p.~6, 2015.
+
+\bibitem{breiman2001}
+L.~Breiman, ``Random Forests,''
+\emph{Machine Learning}, vol.~45, pp.~5--32, 2001.
+
+\bibitem{pedregosa2011}
+F.~Pedregosa et al.,
+``Scikit-learn: Machine Learning in Python,''
+\emph{Journal of Machine Learning Research}, vol.~12, pp.~2825--2830, 2011.
+
+\bibitem{efron1979}
+B.~Efron, ``Bootstrap Methods: Another Look at the Jackknife,''
+\emph{The Annals of Statistics}, vol.~7, no.~1, pp.~1--26, 2018.
+
+\end{thebibliography}
 
 \end{document}
