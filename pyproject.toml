@@ -7,7 +7,7 @@ name = "transit-lab"
 version = "0.1.0"
 description = "Detection completeness of learned vs. classical transit search"
 requires-python = ">=3.14"
-dependencies = ["numpy==2.4.2", "scikit-learn==1.9.1"]
+dependencies = ["numpy==2.4.2", "scikit-learn==1.9.1", "torch==2.14.1"]
 
 [project.optional-dependencies]
 # Tools needed only to develop and test the package.

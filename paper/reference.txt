@@ -1,2 +1,0 @@
-Mandel & Agol (2002)
-AstroNet: https://github.com/google-research/exoplanet-ml/blob/master/exoplanet-ml/astronet/README.md
