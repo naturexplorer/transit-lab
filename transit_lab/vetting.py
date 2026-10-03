@@ -169,3 +169,64 @@ def reflect(g: torch.Tensor, l: torch.Tensor) -> tuple[torch.Tensor, torch.Tenso
             g[i] = torch.flip(g[i], dims=[-1]) 
             l[i] = torch.flip(l[i], dims=[-1])
     return (g, l)
+
+
+def pick_device() -> torch.device:
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    return torch.device("cpu")
+
+
+@torch.no_grad()
+def cnn_scores(model: DualViewCNN, tces: TCEs, batch_size: int = 512) -> np.ndarray:
+    # Planet score per TCE: sigmoid of the logit. Same role as planet_scores for the RF.
+    model.eval()
+    device = next(model.parameters()).device
+    out = []
+    for g, l, _ in DataLoader(cnn_tensors(tces), batch_size=batch_size):
+        g, l = g.to(device), l.to(device)
+        logits = model(g, l)
+        probs = torch.sigmoid(logits)
+        out.append(probs.cpu().numpy())
+    return np.concatenate(out)
+
+
+def train_cnn(train: TCEs, val: TCEs | None = None, seed: int = 0,
+              epochs: int = EPOCHS) -> DualViewCNN:
+    # Fixed epoch count: no decision is taken on val, which is logged for monitoring only.
+    device = pick_device()
+    torch.manual_seed(seed)                 # sets global seed; makes weight init and reflections reproducible
+    model = DualViewCNN().to(device)
+    loader = DataLoader(cnn_tensors(train), batch_size=BATCH_SIZE, shuffle=True,
+                        generator=torch.Generator().manual_seed(seed)) 
+    # DataLoader is an iterable wrapping a dataset; it gives one batch per iteration
+    # shuffling mixes the N inputs and forms batches of 64 using generator
+    # it collates the 64 examples, stacking each component along a new dimension 0:
+    #  global views: (64, 1, 2001), local views: (64, 1, 201), labels: (64,)
+
+    loss_fn = nn.BCEWithLogitsLoss()
+    opt = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-8)
+
+    for epoch in range(epochs):
+        model.train()
+        total = 0.0
+        for g, l, y in loader:     # unpack the batch triple as described above
+            g, l, y = g.to(device), l.to(device), y.to(device)  # copy the batch from CPU memory, where the dataset lives, to the device holding the model
+            g, l = reflect(g, l)    # add variety to the training data; dataset doesn't grow though.
+            # Forward pass
+            logits = model(g, l)
+            # Compute prediction error for the whole batch (mean)
+            loss = loss_fn(logits, y)
+            # Backpropagation
+            opt.zero_grad()     # reset the parameter gradients to 0 to avoid accumulation (we so step every batch)
+            loss.backward()     # perform backpropagation and write the gradients into parameters
+            opt.step()          # perform gradient descent using the backprop's results
+            total += loss.item() * len(y) # turn the batch mean loss back into the batch summed loss
+        msg = f"epoch {epoch + 1:3d}  train loss {total / len(train['label']):.4f}" # average loss per example;
+        # * len(y) is done above instead of averaging the batch mean losses because the last batch might be smaller than 64 (drop_last=False)
+        if val is not None:
+            msg += f"  val auc {vetting_metrics(val['label'], cnn_scores(model, val))['auc']:.4f}"
+        print(msg)  
+    return model
