@@ -114,11 +114,13 @@ def conv_column(filters: list[int], pool_window: int) -> nn.Sequential:
         in_ch = out_ch
     return nn.Sequential(*blocks)
 
+
 def _init_like_tf(m: nn.Module) -> None:
     if isinstance(m, (nn.Conv1d, nn.Linear)):
         nn.init.xavier_uniform_(m.weight)   # PyTorch's name for Glorot-uniform
         if m.bias is not None:
             nn.init.zeros_(m.bias)
+
 
 class DualViewCNN(nn.Module):
     """Two 1-D conv stacks (global, local) -> concatenate -> dense head -> one logit."""
