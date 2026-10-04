@@ -13,7 +13,7 @@ def make_split(n: int, seed: int, with_mask: bool = False) -> dict[str, np.ndarr
     local_view[:, 95:106] -= 3 * label[:, None]
     split = {"global_view": global_view, "local_view": local_view, "label": label}
     if with_mask:
-        split["unseen_star"] = rng.random(n) < 0.5
+        split["star_disjoint"] = rng.random(n) < 0.5
     return split
 
 
@@ -59,11 +59,11 @@ def test_metrics_on_perfect_and_inverted_rankings():
     assert vetting_metrics(labels, -scores)["auc"] == 0.0
 
 
-def test_unseen_star_subset_reported_only_when_flagged():
+def test_star_disjoint_subset_reported_only_when_flagged():
     scores = np.random.default_rng(0).random(100)
     assert evaluate(scores, make_split(100, 0)).keys() == {"all"}
 
     split = make_split(100, 0, with_mask=True)
     results = evaluate(scores, split)
-    assert results.keys() == {"all", "unseen_star"}
-    assert results["unseen_star"]["n"] == split["unseen_star"].sum()
+    assert results.keys() == {"all", "star_disjoint"}
+    assert results["star_disjoint"]["n"] == split["star_disjoint"].sum()

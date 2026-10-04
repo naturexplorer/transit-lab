@@ -11,8 +11,8 @@ Two views at two scales, two conv stacks, concatenated before the head.
 
 Data: AstroNet's pre-computed views (scripts/convert_tfrecords.py -> .npz) on
 AstroNet's released split. That split is by TCE, so stars leak across splits;
-test.npz carries an `unseen_star` mask, and every test metric is reported on both
-the full set and the unseen-star subset (see DESIGN.md).
+test.npz carries an `star_disjoint` mask, and every test metric is reported on both
+the full set and the star_disjoint subset (see DESIGN.md).
 """
 
 from pathlib import Path
@@ -47,11 +47,11 @@ def vetting_metrics(labels: np.ndarray, scores: np.ndarray) -> dict[str, float]:
 
 
 def evaluate(scores: np.ndarray, tces: TCEs) -> dict[str, dict[str, float]]:
-    # Metrics on the whole split, plus on the unseen-star subset when it is flagged.
+    # Metrics on the whole split, plus on the star_disjoint subset when it is flagged.
     results = {"all": vetting_metrics(tces["label"], scores)}
-    if "unseen_star" in tces:
-        m = tces["unseen_star"]
-        results["unseen_star"] = vetting_metrics(tces["label"][m], scores[m])
+    if "star_disjoint" in tces:
+        m = tces["star_disjoint"]
+        results["star_disjoint"] = vetting_metrics(tces["label"][m], scores[m])
     return results
 
 
