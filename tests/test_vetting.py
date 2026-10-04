@@ -24,6 +24,7 @@ def test_rf_features_are_global_then_local():
     np.testing.assert_array_equal(x[:, :2001], split["global_view"])
     np.testing.assert_array_equal(x[:, 2001:], split["local_view"])
 
+
 def test_cnn_tensors_produces_right_shape():
     split = make_split(4, 0)
     dataset = cnn_tensors(split)
@@ -31,6 +32,7 @@ def test_cnn_tensors_produces_right_shape():
     assert(g.shape == (4, 1, 2001))
     assert(l.shape == (4, 1, 201))
     assert(y.shape == (4,))
+
 
 def test_rf_separates_planets_from_noise():
     rf = train_rf(make_split(300, 0), n_trees=50)

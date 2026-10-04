@@ -41,7 +41,9 @@ transit_lab/                 the package: library code only, no I/O or data
   transit_model.py           transit light curve: uniform source and quadratic limb darkening (Stage 3)
   vetting.py                 views -> RF features / CNN tensors; RF and dual-view CNN; training, scoring, metrics (Stage 7)
 scripts/                     entry points: file I/O and command-line options, logic lives in the package
+  compare_vetters.py         Paired bootstrap: frozen CNN vs frozen RF on AstroNet's test split
   convert_tfrecords.py       AstroNet TFRecords -> astronet_data/{train,val,test}.npz, with checks and the star-disjoint mask
+  results_cnn.py             Evaluate the performance of a saved CNN from a .pt file. Report vetting metrics.
   train_rf.py                RF per seed, validation metrics (mean ± std over seeds)
   train_cnn.py               CNN per seed, early stopping on val, saves intomodels/cnn_seed*.pt
 tests/

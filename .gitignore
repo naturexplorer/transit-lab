@@ -2,8 +2,6 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
-CLAUDE.md
-SPEC.md
 resources/
 models/
 astronet_data/*
