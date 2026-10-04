@@ -12,7 +12,8 @@ import torch
 from transit_lab.vetting import evaluate, load_views, train_cnn, cnn_scores
 
 
-DATA_DIR = Path("astronet_data")
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "astronet_data"
 
 
 def main() -> None:

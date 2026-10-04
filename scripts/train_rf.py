@@ -1,7 +1,7 @@
 """Train the Random Forest on AstroNet's train split and report vetting metrics.
 
 Run from the repo root:  python scripts/train_rf.py             (validation metrics for seed 0)
-                         python scripts/train_cnn.py --seeds k  (validation metrics for seeds 0..k-1)
+                         python scripts/train_rf.py --seeds k  (validation metrics for seeds 0..k-1)
                          python scripts/train_rf.py --test      (test metrics for seed 0)
 
 The --test is only for the final, frozen model: every decision made after looking at
@@ -12,9 +12,10 @@ import argparse
 import time
 from pathlib import Path
 import numpy as np
-from transit_lab.vetting import evaluate, load_views, planet_scores, train_rf
+from transit_lab.vetting import evaluate, load_views, rf_scores, train_rf
 
-DATA_DIR = Path("astronet_data")
+ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = ROOT / "astronet_data"
 
 
 def main() -> None:
@@ -38,7 +39,7 @@ def main() -> None:
     for seed in range(args.seeds):
         start = time.perf_counter()
         rf = train_rf(train, seed=seed)
-        for subset, m in evaluate(planet_scores(rf, split), split).items():
+        for subset, m in evaluate(rf_scores(rf, split), split).items():
             results.setdefault(subset, []).append(m)
             print(f"seed {seed}  {name}/{subset:11s}  "
                   f"AUC={m['auc']:.4f}  PR-AUC={m['pr_auc']:.4f}")

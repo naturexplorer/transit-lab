@@ -56,7 +56,7 @@ def evaluate(scores: np.ndarray, tces: TCEs) -> dict[str, dict[str, float]]:
 
 
 """ Section 3: Random Forest. """
-def planet_scores(rf: RandomForestClassifier, tces: TCEs) -> np.ndarray:
+def rf_scores(rf: RandomForestClassifier, tces: TCEs) -> np.ndarray:
     # Planet score per TCE: the mean over trees of the planet fraction in its leaf.
     # Can be computes as for one planet, and for many planets.
     if list(rf.classes_) != [0, 1]:
@@ -189,6 +189,15 @@ def pick_device() -> torch.device:
     return torch.device("cpu")
 
 
+def load_cnn(path: str | Path) -> DualViewCNN:
+    device = pick_device()
+    checkpoint = torch.load(path, map_location=device)   # map_location: load straight onto this machine's device
+    model = DualViewCNN().to(device)                     # rebuild the architecture from code...
+    model.load_state_dict(checkpoint["state_dict"])      # put the saved weights into it
+    model.eval()                                         # inference mode, before scoring
+    return model
+
+
 @torch.no_grad()
 def cnn_scores(model: DualViewCNN, tces: TCEs, batch_size: int = 512) -> np.ndarray:
     # Planet score per TCE: sigmoid of the logit. Same role as planet_scores for the RF.
@@ -205,7 +214,7 @@ def cnn_scores(model: DualViewCNN, tces: TCEs, batch_size: int = 512) -> np.ndar
 
 def train_cnn(train: TCEs, val: TCEs | None = None, seed: int = 0,
               epochs: int = EPOCHS) -> Tuple[DualViewCNN, int]:
-    # Fixed epoch count: no decision is taken on val, which is logged for monitoring only.
+    # val is optional; If supplied, early stopping is in place; If not, fixed ephocs=300 by default
     device = pick_device()
     torch.manual_seed(seed)                 # sets global seed; makes weight init and reflections reproducible
     model = DualViewCNN().to(device)
