@@ -1,7 +1,7 @@
 """Tests for the vetting classifiers (stage 7), on synthetic views."""
 
 import numpy as np
-from transit_lab.vetting import evaluate, planet_scores, rf_features, train_rf, train_cnn, cnn_scores, cnn_tensors, vetting_metrics
+from transit_lab.vetting import evaluate, rf_scores, rf_features, train_rf, train_cnn, cnn_scores, cnn_tensors, vetting_metrics
 
 
 def make_split(n: int, seed: int, with_mask: bool = False) -> dict[str, np.ndarray]:
@@ -35,7 +35,7 @@ def test_cnn_tensors_produces_right_shape():
 def test_rf_separates_planets_from_noise():
     rf = train_rf(make_split(300, 0), n_trees=50)
     held_out = make_split(200, 1)
-    assert vetting_metrics(held_out["label"], planet_scores(rf, held_out))["auc"] > 0.95
+    assert vetting_metrics(held_out["label"], rf_scores(rf, held_out))["auc"] > 0.95
 
 
 def test_cnn_separates_planets_from_noise():
@@ -46,8 +46,8 @@ def test_cnn_separates_planets_from_noise():
 
 def test_rf_is_deterministic_given_seed():
     train, held_out = make_split(100, 0), make_split(50, 1)
-    first = planet_scores(train_rf(train, n_trees=20, seed=7), held_out)
-    second = planet_scores(train_rf(train, n_trees=20, seed=7), held_out)
+    first = rf_scores(train_rf(train, n_trees=20, seed=7), held_out)
+    second = rf_scores(train_rf(train, n_trees=20, seed=7), held_out)
     np.testing.assert_array_equal(first, second)
 
 
