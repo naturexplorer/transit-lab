@@ -35,15 +35,6 @@ def load_views(path: str | Path) -> TCEs:
 
 
 """ Section 2: scoring and evaluation. """
-def planet_scores(rf: RandomForestClassifier, tces: TCEs) -> np.ndarray:
-    # Planet score per TCE: the mean over trees of the planet fraction in its leaf.
-    # Can be computes as for one planet, and for many planets.
-    if list(rf.classes_) != [0, 1]:
-        raise ValueError(f"expected classes [0, 1], got {rf.classes_}")
-    proba = rf.predict_proba(rf_features(tces))
-    return proba[:, 1]
-
-
 def vetting_metrics(labels: np.ndarray, scores: np.ndarray) -> dict[str, float]:
     # Threshold-free ranking quality: ROC AUC and PR-AUC (average precision)
     return {
@@ -64,6 +55,15 @@ def evaluate(scores: np.ndarray, tces: TCEs) -> dict[str, dict[str, float]]:
 
 
 """ Section 3: Random Forest. """
+def planet_scores(rf: RandomForestClassifier, tces: TCEs) -> np.ndarray:
+    # Planet score per TCE: the mean over trees of the planet fraction in its leaf.
+    # Can be computes as for one planet, and for many planets.
+    if list(rf.classes_) != [0, 1]:
+        raise ValueError(f"expected classes [0, 1], got {rf.classes_}")
+    proba = rf.predict_proba(rf_features(tces))
+    return proba[:, 1]
+
+
 def rf_features(tces: TCEs) -> np.ndarray:
     # (N, 2202) matrix: each row is one TCE's global view followed by its local view
     return np.concatenate([tces["global_view"], tces["local_view"]], axis=1)
