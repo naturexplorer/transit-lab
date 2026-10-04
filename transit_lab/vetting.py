@@ -16,6 +16,7 @@ the full set and the unseen-star subset (see DESIGN.md).
 """
 
 from pathlib import Path
+from typing import Tuple
 import numpy as np
 import torch
 from torch import nn
@@ -90,7 +91,7 @@ POOL_STRIDE: int = 2        # max-pool stride (by how many values to jump for po
 HEAD_LAYERS: int = 4        # number of hidden fully connected layers after the separate convolutions for local and global
 HEAD_UNITS: int = 512       # number of neurons in the FC layers
 # Training (Sec. 5.2)
-BATCH_SIZE, EPOCHS, LR = 64, 50, 1e-5
+BATCH_SIZE, EPOCHS, LR = 64, 300, 1e-5
 
 
 def conv_block(in_ch: int, out_ch: int, pool_window: int) -> nn.Sequential:
@@ -113,6 +114,11 @@ def conv_column(filters: list[int], pool_window: int) -> nn.Sequential:
         in_ch = out_ch
     return nn.Sequential(*blocks)
 
+def _init_like_tf(m: nn.Module) -> None:
+    if isinstance(m, (nn.Conv1d, nn.Linear)):
+        nn.init.xavier_uniform_(m.weight)   # PyTorch's name for Glorot-uniform
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
 
 class DualViewCNN(nn.Module):
     """Two 1-D conv stacks (global, local) -> concatenate -> dense head -> one logit."""
@@ -130,6 +136,7 @@ class DualViewCNN(nn.Module):
             in_features = HEAD_UNITS
         layers.append(nn.Linear(in_features, 1))
         self.head = nn.Sequential(*layers)
+        self.apply(_init_like_tf)
 
     def _flat_size(self) -> int:
         # Length of the concatenated feature vector, measured with dummy inputs for one example
@@ -160,15 +167,16 @@ def cnn_tensors(tces: TCEs) -> TensorDataset:
 def reflect(g: torch.Tensor, l: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     # Random horizontal reflection (Sec. 4.2 in paper): each TCE is time-reversed with probability 1/2,
     # both views together, and for each channel identically, since all channels describe same TCE at same index
-    g, l = g.clone(), l.clone()
-    batch_size = g.shape[0]
-    mask = torch.rand(batch_size) < 0.5
-    for i in range(batch_size):
-        if mask[i]:
-            # flip lightcurves at selected indices within a batch, in ALL channels
-            g[i] = torch.flip(g[i], dims=[-1]) 
-            l[i] = torch.flip(l[i], dims=[-1])
-    return (g, l)
+    mask = torch.rand(len(g)) < 0.5                  # mask of shape (B,)
+    mask3d = mask.to(g.device)[:, None, None]        # reshaped to (B, 1, 1)
+    # reverse EVERY TCE's (for all channels) time axis to later feed it into torch.where
+    g_rev = g.flip(-1)                               
+    l_rev = l.flip(-1) 
+    # Take the reversed value where flip is True, the original elsewhere.
+    # A size-1 dimension in the condition means: the same value for every index along that axis, which is why the mask works
+    g_new = torch.where(mask3d, g_rev, g)
+    l_new = torch.where(mask3d, l_rev, l)
+    return g_new, l_new
 
 
 def pick_device() -> torch.device:
@@ -194,7 +202,7 @@ def cnn_scores(model: DualViewCNN, tces: TCEs, batch_size: int = 512) -> np.ndar
 
 
 def train_cnn(train: TCEs, val: TCEs | None = None, seed: int = 0,
-              epochs: int = EPOCHS) -> DualViewCNN:
+              epochs: int = EPOCHS) -> Tuple[DualViewCNN, int]:
     # Fixed epoch count: no decision is taken on val, which is logged for monitoring only.
     device = pick_device()
     torch.manual_seed(seed)                 # sets global seed; makes weight init and reflections reproducible
@@ -208,6 +216,7 @@ def train_cnn(train: TCEs, val: TCEs | None = None, seed: int = 0,
 
     loss_fn = nn.BCEWithLogitsLoss()
     opt = torch.optim.Adam(model.parameters(), lr=LR, betas=(0.9, 0.999), eps=1e-8)
+    best_auc, best_state, best_epoch, patience, stale, = -1.0, None, 0, 15, 0
 
     for epoch in range(epochs):
         model.train()
@@ -224,9 +233,25 @@ def train_cnn(train: TCEs, val: TCEs | None = None, seed: int = 0,
             loss.backward()     # perform backpropagation and write the gradients into parameters
             opt.step()          # perform gradient descent using the backprop's results
             total += loss.item() * len(y) # turn the batch mean loss back into the batch summed loss
-        msg = f"epoch {epoch + 1:3d}  train loss {total / len(train['label']):.4f}" # average loss per example;
+
+        print(f"epoch: {epoch + 1:3d}  train loss: {total / len(train['label']):.4f}", end="") # average loss per example;
         # * len(y) is done above instead of averaging the batch mean losses because the last batch might be smaller than 64 (drop_last=False)
         if val is not None:
-            msg += f"  val auc {vetting_metrics(val['label'], cnn_scores(model, val))['auc']:.4f}"
-        print(msg)  
-    return model
+            metrics = vetting_metrics(val['label'], cnn_scores(model, val))
+            auc = metrics['auc']
+            msg = f"  val auc: {auc:.4f}"
+            msg += f"  val pr_auc: {metrics['pr_auc']:.4f}"
+            print(msg)
+            # early stopping logic
+            if auc > best_auc:
+                best_auc, best_epoch, stale = auc, epoch + 1, 0
+                best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+            else:
+                stale += 1
+                if stale >= patience:
+                    break
+
+    print(f"epoch for best auc: {best_epoch}")
+    if best_state is not None:
+       model.load_state_dict(best_state)
+    return (model, best_epoch)
