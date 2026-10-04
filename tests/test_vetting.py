@@ -39,7 +39,7 @@ def test_rf_separates_planets_from_noise():
 
 
 def test_cnn_separates_planets_from_noise():
-    cnn = train_cnn(make_split(300, 0), epochs=10)
+    cnn, _ = train_cnn(make_split(300, 0), epochs=10)
     held_out = make_split(200, 1)
     assert vetting_metrics(held_out["label"], cnn_scores(cnn, held_out))["auc"] > 0.95
 
